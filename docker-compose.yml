@@ -1,0 +1,62 @@
+version: '3.5'
+services:
+    app:
+        build: ./docker
+        volumes:
+            - ./application:/app
+        ports:
+            - "80:8000"
+        links:
+            - postgresql
+#            - redis
+        networks:
+             - network
+    postgresql:
+        image: postgres:9.6.21-alpine
+        ports:
+            - "5432:5432"
+        networks:
+            - network
+        volumes:
+            - ./database:/var/lib/postgresql
+        environment:
+            POSTGRES_USER: root
+            POSTGRES_PASSWORD: jdasfjnkk3HJSD
+            POSTGRES_DB: postgresql
+        restart: always
+#    redis:
+#        image: bitnami/redis:latest
+#        ports:
+#            - "6379:6379"
+#        environment:
+#            - ALLOW_EMPTY_PASSWORD=yes
+#        networks:
+#            - platform
+
+#    crontab:
+#        build: ./docker/crontab
+##        container_name: crontab
+#        volumes:
+#            - ./application:/app
+#        ports:
+#            - "8001:8001"
+#        networks:
+#            - platform
+#        links:
+#            - platform-postgresql
+
+#    platform-supervisor:
+#        build: ./docker/supervisor
+#        restart: unless-stopped
+#        volumes:
+#            - ./application:/app
+#        ports:
+#            - "8008:8008"
+#        networks:
+#            - platform
+networks:
+    network:
+        name: network
+        external: true
+        driver: bridge
+
