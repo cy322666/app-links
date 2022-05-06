@@ -170,12 +170,12 @@ class LinkScreen extends Screen
 
                 ]),
             Layout::table('links', [
-                TD::make('name')->width(150),
+                TD::make('name')->width(70),
                 TD::make('created_at')->render(function ($link) {
                     return Carbon::parse($link->created_at)->format('Y-m-d H:i:s');
                 })->width(200)->defaultHidden(true),
 
-                TD::make('body')->align(TD::ALIGN_CENTER),
+                TD::make('body')->align(TD::ALIGN_CENTER)->width(400),
                 TD::make('is_work')->align(TD::ALIGN_CENTER)->width(50)->defaultHidden(true),
                 TD::make('is_prelanding')->align(TD::ALIGN_CENTER)->width(50),
                 TD::make('prelanding_url')->align(TD::ALIGN_CENTER)->width(250),
