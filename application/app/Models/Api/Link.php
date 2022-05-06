@@ -18,6 +18,7 @@ class Link extends Model
         'name',
         'uuid',
         'is_prelanding',
+        'prelanding_url',
     ];
 
     public function actions(): HasMany

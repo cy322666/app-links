@@ -16,7 +16,6 @@ class WebController extends Controller
      * Переход по ссылке
      *
      * @param TransitionRequest $request
-     * @return Application|Factory|View
      */
     public function transition(TransitionRequest $request)
     {
@@ -28,7 +27,7 @@ class WebController extends Controller
 
         if($link->is_prelanding === true) {
 
-            return view('prelanding');
+            return redirect($link->prelanding_url.'?clickID='.$link->click_id);
         } else {
 
             return redirect($link->app->url);

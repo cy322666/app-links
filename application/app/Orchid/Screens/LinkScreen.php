@@ -50,7 +50,7 @@ class LinkScreen extends Screen
     public function query(): iterable
     {
         return [
-            'links' => Link::all(),
+            'links' => Link::orderBy('created_at', 'DESC')->paginate(30),
         ];
     }
 
@@ -105,6 +105,7 @@ class LinkScreen extends Screen
 
         return [
             Layout::columns([
+
                 Layout::rows([
 
                     Select::make('link')
@@ -112,10 +113,11 @@ class LinkScreen extends Screen
                             'os'      => 'os',
                             'country' => 'country',
                             'cost'    => 'cost',
-                            'campaignId' => 'campaignid',
-                            'clickId'    => 'clickid',
+                            'campaignid' => 'campaignid',
+                            'clickid'    => 'clickid',
                         ])
                         ->multiple()
+                        ->required(true)
                         ->popover('Выберите параметры для формирования ссылки')
                         ->title('Параметры ссылки'),
 
@@ -127,6 +129,7 @@ class LinkScreen extends Screen
 
                     Input::make('name')
                         ->title('Название ссылки')
+                        ->required(true)
                         ->popover('Введите название для ссылки'),
 
                     Relation::make('app')
@@ -136,9 +139,14 @@ class LinkScreen extends Screen
 
                     Switcher::make('is_prelanding')
                         ->sendTrueOrFalse()
+                        ->horizontal()
                         ->placeholder('Преленд'),
 
-                    Button::make('Сохранить')->method('buttonClickProcessing')
+                    Input::make('prelanding_url')
+                        ->title('Ссылка на преленд')
+                        ->popover('Введите ссылку для перенаправления'),
+
+                    Button::make('Сохранить')->method('save')
                         ->type(Color::DARK()),
 
                 ]),
@@ -173,7 +181,7 @@ class LinkScreen extends Screen
         ];
     }
 
-    public function buttonClickProcessing(Request $request)
+    public function save(Request $request)
     {
         try {
             $uuid = Uuid::uuid4()->toString();
@@ -183,6 +191,7 @@ class LinkScreen extends Screen
                 'name'   => $request->name,
                 'uuid'   => $uuid,
                 'is_prelanding' => $request->is_prelanding,
+                'prelanding_url' => $request->prelanding_url ?? null,
             ]);
 
             Alert::success('Ссылка успешно создана, ее uuid : '.$link->uuid);

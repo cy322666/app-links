@@ -46,7 +46,6 @@ return array(
     'App\\Orchid\\Presenters\\UserPresenter' => $baseDir . '/app/Orchid/Presenters/UserPresenter.php',
     'App\\Orchid\\Screens\\ErrorsScreen' => $baseDir . '/app/Orchid/Screens/ErrorsScreen.php',
     'App\\Orchid\\Screens\\LinkScreen' => $baseDir . '/app/Orchid/Screens/LinkScreen.php',
-    'App\\Orchid\\Screens\\PlatformScreen' => $baseDir . '/app/Orchid/Screens/PlatformScreen.php',
     'App\\Orchid\\Screens\\ReportScreen' => $baseDir . '/app/Orchid/Screens/ReportScreen.php',
     'App\\Orchid\\Screens\\Role\\RoleEditScreen' => $baseDir . '/app/Orchid/Screens/Role/RoleEditScreen.php',
     'App\\Orchid\\Screens\\Role\\RoleListScreen' => $baseDir . '/app/Orchid/Screens/Role/RoleListScreen.php',

@@ -8,7 +8,10 @@ use App\Orchid\Layouts\Examples\ChartPieExample;
 use App\Services\Reports\ReportHelper;
 use Carbon\Carbon;
 use Illuminate\Contracts\Container\BindingResolutionException;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Redirector;
 use Illuminate\Support\Str;
 use Orchid\Platform\Models\User;
 use Orchid\Screen\Actions\Button;
@@ -18,6 +21,7 @@ use Orchid\Screen\Fields\DateRange;
 use Orchid\Screen\Fields\DateTimer;
 use Orchid\Screen\Fields\Group;
 use Orchid\Screen\Fields\Input;
+use Orchid\Screen\Fields\Label;
 use Orchid\Screen\Fields\Relation;
 use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Repository;
@@ -38,6 +42,10 @@ class ReportScreen extends Screen
 
     private int $countDiffDays;
 
+    private array $reportColumns;
+
+    private string $targetReport = 'campaign';
+
     /**
      * Query data.
      *
@@ -45,9 +53,11 @@ class ReportScreen extends Screen
      */
     public function query(Request $request): iterable
     {
-        $arrayDates = ReportHelper::getDatesByRequest($request);
+        $this->targetReport = $request->target_report ?? $this->targetReport;
 
-        $this->countDiffDays = $arrayDates['countDays'];
+        $arrayDatesRaw = ReportHelper::getDatesByRequest($request);
+
+        $this->countDiffDays = $arrayDatesRaw['countDays'];
 
         $actionsAllPaginate = Action::orderBy('date')->paginate(30);
 
@@ -55,8 +65,8 @@ class ReportScreen extends Screen
 
         $actionsFilterAll = Action::query()
             ->whereBetween('date', [
-                $arrayDates['dateAt']->format('Y-m-d'),
-                $arrayDates['dateTo']->format('Y-m-d'),
+                $arrayDatesRaw['dateAt']->format('Y-m-d'),
+                $arrayDatesRaw['dateTo']->format('Y-m-d'),
             ])
             ->get();
 
@@ -86,7 +96,13 @@ class ReportScreen extends Screen
 
         $arrayInstall = ReportHelper::prepareArray($arrayDates, $actionsInstallArray);
 
-        $arraySumCampaign = ReportHelper::sumByCollection($actionsFilterAll->groupBy('campaign_id'));
+        $arraySumCampaign = ReportHelper::sumByCollection($actionsFilterAll->groupBy('campaign_id')->sortBy('sum')->slice(0, 12));
+
+        $reportData = ReportHelper::reportBuild($request->target_report ?? null, $arrayDatesRaw);
+
+        $this->reportColumns = $reportData['columns'];
+
+        unset($reportData['columns']);
 
         return [
             'actions' => $actionsAllPaginate,
@@ -145,14 +161,15 @@ class ReportScreen extends Screen
 
             ],
 
-            'table'   => [
-                new Repository(['id' => 100, 'name' => self::TEXT_EXAMPLE, 'price' => 10.24, 'created_at' => '01.01.2020']),
-                new Repository(['id' => 200, 'name' => self::TEXT_EXAMPLE, 'price' => 65.9, 'created_at' => '01.01.2020']),
-                new Repository(['id' => 300, 'name' => self::TEXT_EXAMPLE, 'price' => 754.2, 'created_at' => '01.01.2020']),
-                new Repository(['id' => 400, 'name' => self::TEXT_EXAMPLE, 'price' => 0.1, 'created_at' => '01.01.2020']),
-                new Repository(['id' => 500, 'name' => self::TEXT_EXAMPLE, 'price' => 0.15, 'created_at' => '01.01.2020']),
+            //по кампаниям, по названию, по системе и в разрезе дат
 
-            ],
+            //по странам: country | costs | count_transition | count_install | ctr | prelanding | direct | android | ios
+
+            //по кампаниям: name | costs | count_transition | count_install | ctr | prelanding | direct | android | ios
+
+            //по системе: os | costs | count_transition | count_install | ctr | prelanding | direct
+
+            'reports' => $reportData,
             'metrics' => [
                 'install_today' => ['value' => number_format(
                     $actionsAll
@@ -241,16 +258,6 @@ class ReportScreen extends Screen
     }
 
     /**
-     * Button commands.
-     *
-     * @return Action[]
-     */
-    public function commandBar(): iterable
-    {
-        return [];
-    }
-
-    /**
      * Views.
      *
      * @return iterable
@@ -297,40 +304,80 @@ class ReportScreen extends Screen
                 ChartPieExample::class,
 
                 Layout::rows([
-                    Group::make([
-                        DateRange::make('filterDates')
-                            ->title('Фильтр по дате'),
-                    ]),
-                    Group::make([
-                    Button::make('Применить')
-                        ->method('filter')
-                        ->type(Color::DARK()),
+//                    Group::make([
+//                        DateRange::make('filterDates')
+//                            ->title('Фильтр по дате'),
+//                    ]),
+//                    Group::make([
+//                        Button::make('Применить')
+//                            ->method('filter')
+//                            ->type(Color::DARK()),
+//
+//                        Button::make('Сбросить')
+//                            ->method('reset')
+//                            ->type(Color::LIGHT()),
+//                    ])->autoWidth(),
 
-                    Button::make('Сбросить')
-                        ->method('reset')
-                        ->type(Color::LIGHT()),
+//                    Label::make('hr')->hr(),
+
+                    Group::make([
+                        Select::make('targetReport')
+                            ->options([
+                                'campaign' => 'Кампании',
+                                'os'       => 'Платформы',
+                                'country'  => 'Страны',
+                                'name'     => 'Ссылки',
+                            ])
+                            ->value($this->targetReport)
+                            ->popover('Выберите параметр для составления отчета')
+                            ->title('Вид отчета'),
+                    ]),
+
+                    DateRange::make('filterDates')
+                        ->title('Фильтр по дате'),
+
+                        Group::make([
+
+                            Button::make('Применить')
+                                ->method('filter')
+                                ->type(Color::DARK()),
+
+                            Button::make('Сбросить')
+                            ->method('reset')
+                            ->type(Color::LIGHT()),
+
                     ])->autoWidth(),
                 ]),
             ]),
 
+            Layout::table(
+                'reports',
+                ReportHelper::prepareColumns($this->reportColumns)
+            )->title('Отчеты по параметрам'),
+
             Layout::table('actions', [
-                TD::make('type'),
-                TD::make('transition_type'),
-                TD::make('date'),
-                TD::make('os'),
-                TD::make('country'),
-                TD::make('cost'),
-            ]),
+                TD::make('transition_type', 'Тип перехода'),
+                TD::make('date', 'Дата перехода'),
+                TD::make('campaign_id', 'ID кампании'),
+                TD::make('os', 'ОС'),
+                TD::make('country', 'Страна'),
+                TD::make('is_install', 'Установка'),
+                TD::make('install_at', 'Дата установки'),
+                TD::make('cost', 'Стоимость'),
+            ])->title('Список событий'),
         ];
-        //TODO тут таблица с действиями
     }
 
-    public function filter(Request $request)
+    public function filter(Request $request): Redirector|Application|RedirectResponse
     {
-        return redirect('admin/reports?date_at='.$request->filterDates['start'].'&date_to='.$request->filterDates['end']);
+//        Alert::info(json_encode($request->toArray()));
+        $queryDates  = 'date_at='.$request->filterDates['start'].'&date_to='.$request->filterDates['end'];
+        $queryReport = 'target_report='.$request->targetReport;
+
+        return redirect('admin/reports?'.$queryDates.'&'.$queryReport);
     }
 
-    public function reset()
+    public function reset(): Redirector|Application|RedirectResponse
     {
         return redirect('admin/reports');
     }
@@ -341,29 +388,5 @@ class ReportScreen extends Screen
     public function showToast(Request $request): void
     {
         Toast::warning($request->get('toast', 'Hello, world! This is a toast message.'));
-    }
-
-    /**
-     * @return \Symfony\Component\HttpFoundation\StreamedResponse
-     */
-    public function export()
-    {
-        return response()->streamDownload(function () {
-            $csv = tap(fopen('php://output', 'wb'), function ($csv) {
-                fputcsv($csv, ['header:col1', 'header:col2', 'header:col3']);
-            });
-
-            collect([
-                ['row1:col1', 'row1:col2', 'row1:col3'],
-                ['row2:col1', 'row2:col2', 'row2:col3'],
-                ['row3:col1', 'row3:col2', 'row3:col3'],
-            ])->each(function (array $row) use ($csv) {
-                fputcsv($csv, $row);
-            });
-
-            return tap($csv, function ($csv) {
-                fclose($csv);
-            });
-        }, 'File-name.csv');
     }
 }

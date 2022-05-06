@@ -651,7 +651,6 @@ class ComposerStaticInit6cf10ffcdfeb057f0c7a9179864f0734
         'App\\Orchid\\Presenters\\UserPresenter' => __DIR__ . '/../..' . '/app/Orchid/Presenters/UserPresenter.php',
         'App\\Orchid\\Screens\\ErrorsScreen' => __DIR__ . '/../..' . '/app/Orchid/Screens/ErrorsScreen.php',
         'App\\Orchid\\Screens\\LinkScreen' => __DIR__ . '/../..' . '/app/Orchid/Screens/LinkScreen.php',
-        'App\\Orchid\\Screens\\PlatformScreen' => __DIR__ . '/../..' . '/app/Orchid/Screens/PlatformScreen.php',
         'App\\Orchid\\Screens\\ReportScreen' => __DIR__ . '/../..' . '/app/Orchid/Screens/ReportScreen.php',
         'App\\Orchid\\Screens\\Role\\RoleEditScreen' => __DIR__ . '/../..' . '/app/Orchid/Screens/Role/RoleEditScreen.php',
         'App\\Orchid\\Screens\\Role\\RoleListScreen' => __DIR__ . '/../..' . '/app/Orchid/Screens/Role/RoleListScreen.php',

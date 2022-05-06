@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Orchid\Screen\TD;
 
 class ReportHelper
 {
@@ -56,5 +57,25 @@ class ReportHelper
             'dateTo' => $date_to,
             'countDays' => $date_at->diffInDays($date_to)
         ];
+    }
+
+    public static function reportBuild(?string $reportType, array $dates): array
+    {
+        $strategy = match ($reportType) {
+            'country' => new CountryStrategy($dates),
+            'os'      => new OsStrategy($dates),
+            'name'    => new NameStrategy($dates),
+            default   => new CampaignStrategy($dates),
+        };
+        return $strategy->build();
+    }
+
+    public static function prepareColumns(array $columnsRaw): array
+    {
+        foreach ($columnsRaw as $columnCode => $columnTitle) {
+
+            $columns[] = TD::make($columnCode, $columnTitle);
+        }
+        return $columns ?? [];
     }
 }

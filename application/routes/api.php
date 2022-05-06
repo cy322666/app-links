@@ -20,3 +20,5 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::get('app/install', [ApiController::class, 'install']);
+
+Route::get('app/check', [ApiController::class, 'check']);
