@@ -8,7 +8,7 @@ services:
             - "80:8000"
         links:
             - postgresql
-#            - redis
+            - supervisor
         networks:
              - network
     postgresql:
@@ -45,15 +45,15 @@ services:
 #        links:
 #            - platform-postgresql
 
-#    platform-supervisor:
-#        build: ./docker/supervisor
-#        restart: unless-stopped
-#        volumes:
-#            - ./application:/app
-#        ports:
-#            - "8008:8008"
-#        networks:
-#            - platform
+    supervisor:
+        build: ./docker/supervisor
+        restart: unless-stopped
+        volumes:
+            - ./application:/app
+        ports:
+            - "8008:8008"
+        networks:
+            - network
 networks:
     network:
         name: network

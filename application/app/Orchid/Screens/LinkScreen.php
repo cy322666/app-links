@@ -189,7 +189,7 @@ class LinkScreen extends Screen
             $uuid = Uuid::uuid4()->toString();
             $link = Link::query()->create([
                 'app_id' => $request->app,
-                'body'   => env('APP_URL')."?uuid={$uuid}&".$this->buildBodyLink($request->toArray()['link']),
+                'body'   => env('APP_URL')."/app/transition?uuid={$uuid}&".$this->buildBodyLink($request->toArray()['link']),
                 'name'   => $request->name,
                 'uuid'   => $uuid,
                 'is_prelanding' => $request->is_prelanding,
