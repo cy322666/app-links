@@ -170,7 +170,7 @@ class LinkScreen extends Screen
 
                 ]),
             Layout::table('links', [
-                TD::make('name')->width(100),
+                TD::make('name')->width(150),
                 TD::make('created_at')->render(function ($link) {
                     return Carbon::parse($link->created_at)->format('Y-m-d H:i:s');
                 })->width(200)->defaultHidden(true),
