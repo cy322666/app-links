@@ -98,7 +98,7 @@ class LinkScreen extends Screen
             '{country} - страна',
             '{cost} - стоимость',
             '{campaignId} - id кампании',
-            '{clickId} - id клика',
+            '{SUBID} - id клика',
         ];
 
         $helpText = implode("</br>", $helpText);
@@ -114,7 +114,7 @@ class LinkScreen extends Screen
                             'country' => 'country',
                             'cost'    => 'cost',
                             'campaignid' => 'campaignid',
-                            'clickid'    => 'clickid',
+                            'clickid'    => 'SUBID',
                         ])
                         ->multiple()
                         ->required(true)
@@ -173,10 +173,12 @@ class LinkScreen extends Screen
                 TD::make('name')->width(100),
                 TD::make('created_at')->render(function ($link) {
                     return Carbon::parse($link->created_at)->format('Y-m-d H:i:s');
-                })->width(200),
+                })->width(200)->defaultHidden(true),
+
                 TD::make('body')->align(TD::ALIGN_CENTER),
-                TD::make('is_work')->align(TD::ALIGN_CENTER)->width(50),
+                TD::make('is_work')->align(TD::ALIGN_CENTER)->width(50)->defaultHidden(true),
                 TD::make('is_prelanding')->align(TD::ALIGN_CENTER)->width(50),
+                TD::make('prelanding_url')->align(TD::ALIGN_CENTER)->width(250),
             ]),
         ];
     }
@@ -210,8 +212,12 @@ class LinkScreen extends Screen
     {
         return implode('&', array_map(function ($param) {
 
-            return $param.'=${'.$param.'}';
+            if($param != 'clickid') {
 
+                return $param.'=${'.$param.'}';
+            } else {
+                return 'clickid=${SUBID}';
+            }
         }, $arrayParams));
     }
 

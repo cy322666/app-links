@@ -27,7 +27,7 @@ class WebController extends Controller
 
         if($link->is_prelanding === true) {
 
-            return redirect($link->prelanding_url.'?clickID='.$link->click_id);
+            return redirect($link->prelanding_url.'?clickid='.$link->click_id);
         } else {
 
             return redirect($link->app->url);
