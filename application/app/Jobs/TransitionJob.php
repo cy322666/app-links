@@ -44,7 +44,7 @@ class TransitionJob implements ShouldQueue
             'os'      => $this->requestData['os'] ?? null,
             'country' => $this->requestData['country'] ?? null,
             'cost'    => $this->requestData['cost'] ?? null,
-            'campaign_id' => $this->requestData['campaign_id'] ?? null,
+            'campaign_id' => $this->requestData['campaignid'] ?? null,
             'click_id'  => $this->requestData['click_id'] ?? null,
 
             'date' => Carbon::now()->format('Y-m-d'),
