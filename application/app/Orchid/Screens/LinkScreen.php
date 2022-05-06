@@ -97,7 +97,7 @@ class LinkScreen extends Screen
             '{os} - операционная система',
             '{country} - страна',
             '{cost} - стоимость',
-            '{campaignId} - id кампании',
+            '{campaignid} - id кампании',
             '{SUBID} - id клика',
         ];
 
