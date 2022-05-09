@@ -37,6 +37,10 @@ class PlatformProvider extends OrchidServiceProvider
                 ->icon('link')
                 ->route('platform.links'),
 
+            Menu::make('Приложения')
+                ->icon('grid')
+                ->route('platform.apps'),
+
             Menu::make('Ошибки')
                 ->icon('shield')
                 ->route('platform.errors'),

@@ -3,17 +3,17 @@
 namespace App\Services\Reports;
 
 use App\Models\Api\Action;
+use App\Models\Api\Link;
 use Orchid\Screen\Repository;
 
-class CampaignStrategy
+class ZoneIdStrategy
 {
     private string $dateAt;
     private string $dateTo;
     private int $countDays;
 
     public static array $columns = [
-        'id' => 'ID',
-        'name' => 'Название',
+        'name' => 'ID Региона',
         'costs' => 'Стоимость',
         'costs_install' => 'Стоимость установки',
         'count_transition' => 'Количество переходов',
@@ -41,7 +41,7 @@ class CampaignStrategy
                 $this->dateTo,
             ])
             ->get()
-            ->groupBy('campaign_id');
+            ->groupBy('zone_id');
 
         foreach ($collections as $typeCollection => $collection) {
 
@@ -62,7 +62,6 @@ class CampaignStrategy
             }
 
             $dataReport[] = new Repository([
-                'id' => $collection->first()->id,
                 'name'  => $typeCollection,
                 'costs' => $sum,
                 'costs_install' => $costInstall,

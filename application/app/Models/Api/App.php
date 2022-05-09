@@ -11,6 +11,12 @@ class App extends Model
 {
     use HasFactory, AsSource;
 
+    protected $fillable = [
+        'uuid',
+        'url',
+        'name',
+    ];
+
     public function actions(): HasMany
     {
         return $this->hasMany(Action::class);

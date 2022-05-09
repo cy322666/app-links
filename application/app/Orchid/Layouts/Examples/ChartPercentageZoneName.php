@@ -6,17 +6,17 @@ namespace App\Orchid\Layouts\Examples;
 
 use Orchid\Screen\Layouts\Chart;
 
-class ChartPercentageExample extends Chart
+class ChartPercentageZoneName extends Chart
 {
     /**
      * @var string
      */
-    protected $title = 'Отчет по кампаниям';
+    protected $title = 'Регионы по кликам';
 
     /**
      * @var int
      */
-    protected $height = 133;
+    protected $height = 200;
 
     /**
      * Available options:
@@ -25,10 +25,12 @@ class ChartPercentageExample extends Chart
      *
      * @var string
      */
-    protected $type = 'percentage';
+    protected $type = 'pie';
 
     /**
      * @var string
      */
-    protected $target = 'charts';
+    protected $target = '123';
+
+    protected $export = false;
 }

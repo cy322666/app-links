@@ -23,3 +23,7 @@ Route::group(['prefix' => 'app'], function () {
     Route::get('transition', [WebController::class, 'transition']);
 });
 
+Route::group(['prefix' => 'admin'], function () {
+
+    Route::get('link/delete/{link}', [WebController::class, 'deleteLink'])->name('admin.link.delete');
+});

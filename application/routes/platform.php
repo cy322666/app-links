@@ -68,5 +68,7 @@ Route::screen('users', UserListScreen::class)
 Route::screen('reports', \App\Orchid\Screens\ReportScreen::class)->name('platform.reports');
 Route::screen('links', \App\Orchid\Screens\LinkScreen::class)->name('platform.links');
 Route::screen('errors', \App\Orchid\Screens\ErrorsScreen::class)->name('platform.errors');
+Route::screen('apps', \App\Orchid\Screens\AppScreen::class)->name('platform.apps');
 
-//Route::screen('idea', Idea::class, 'platform.screens.idea');
+Route::screen('reports/campaign/{action}', \App\Orchid\Screens\CampaignScreen::class)->name('platform.campaign');
+

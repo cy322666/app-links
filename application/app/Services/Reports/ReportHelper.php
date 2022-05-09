@@ -2,10 +2,12 @@
 
 namespace App\Services\Reports;
 
+use App\Models\Api\Link;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Orchid\Screen\Repository;
 use Orchid\Screen\TD;
 
 class ReportHelper
@@ -47,16 +49,13 @@ class ReportHelper
         return $arraySum ?? [];
     }
 
-    public static function getDatesByRequest(Request $request) : array
+    public static function costByCollection(Collection|LengthAwarePaginator $collections): array
     {
-        $date_at = $request->input('date_at') ? Carbon::parse($request->input('date_at')) : Carbon::now()->subDays(6);
-        $date_to = $request->input('date_to') ? Carbon::parse($request->input('date_to')) : Carbon::now()->addDay();
+        foreach ($collections as $campaignId => $collection) {
 
-        return [
-            'dateAt' => $date_at,
-            'dateTo' => $date_to,
-            'countDays' => $date_at->diffInDays($date_to)
-        ];
+            $arraySum[$campaignId] = $collection->sum('cost') / $collection->count();
+        }
+        return $arraySum ?? [];
     }
 
     public static function reportBuild(?string $reportType, array $dates): array
@@ -65,17 +64,52 @@ class ReportHelper
             'country' => new CountryStrategy($dates),
             'os'      => new OsStrategy($dates),
             'name'    => new NameStrategy($dates),
+            'zone_type' => new ZoneTypeStrategy($dates),
+            'zone_id' => new ZoneIdStrategy($dates),
             default   => new CampaignStrategy($dates),
         };
         return $strategy->build();
     }
 
-    public static function prepareColumns(array $columnsRaw): array
+    public static function prepareColumns(
+        array $columnsRaw,
+        string $targetReport,
+        array $reportData,
+        FilterRequest $request,
+    ): array
     {
         foreach ($columnsRaw as $columnCode => $columnTitle) {
 
-            $columns[] = TD::make($columnCode, $columnTitle);
+            if ($targetReport != 'campaign') {
+
+                $columns[] = TD::make($columnCode, $columnTitle);
+
+            } elseif ($columnCode == 'id') {
+
+                $columns[] = TD::make($columnCode, $columnTitle)->defaultHidden(true);
+            } else {
+                if ($columnCode == 'name') {
+
+                    $columns[] = TD::make($columnCode, $columnTitle)
+                        ->render(function (Repository $reportData) use ($request, $columnCode) {
+
+                            return "<b><a href=".env('APP_URL').'/admin/reports/campaign/'.$reportData->get('id').">{$reportData->get('name')}</a></b>";
+                        });
+                } else {
+                    $columns[] = TD::make($columnCode, $columnTitle);
+                }
+            }
         }
         return $columns ?? [];
     }
+//                Legend::make('links', [
+//                    TD::make('id', 'ID')
+//                        ->width('150')
+//                        ->render(function (Repository $model) {
+//                            // Please use view('path')
+//                            return "<img src='https://picsum.photos/450/200?random={$model->get('id')}'
+//                              alt='sample'
+//                              class='mw-100 d-block img-fluid'>
+//                            <span class='small text-muted mt-1 mb-0'># {$model->get('id')}</span>";
+//                        }),
 }

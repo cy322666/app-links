@@ -15,6 +15,7 @@ class CountryStrategy
     public static array $columns = [
         'name' => 'Название',
         'costs' => 'Стоимость',
+        'costs_install' => 'Стоимость установки',
         'count_transition' => 'Количество переходов',
         'count_install' => 'Количество установок',
         'cr' => 'CR',
@@ -49,19 +50,24 @@ class CountryStrategy
                 ->where('is_install', true)
                 ->count();
 
+            $sum = $collection->sum('cost');
+
             if ($countInstallAll > 0) {
 
                 $cr = round(($countInstallAll / $countTransitionAll) * 100, 1);
+                $costInstall = round($sum / $countInstallAll, 2);
             } else {
                 $cr = 0;
+                $costInstall = '-';
             }
 
             $dataReport[] = new Repository([
                 'name'  => $typeCollection,
-                'costs' => $collection->sum('cost'),
+                'costs' => $sum,
+                'costs_install' => $costInstall,
                 'count_transition' => $countTransitionAll,
                 'count_install'    => $countInstallAll,
-                'cr' => $cr.' %',
+                'cr' => $cr.'%',
                 'count_prelanding' => $collection
                     ->where('transition_type', 'prelanding')
                     ->count(),

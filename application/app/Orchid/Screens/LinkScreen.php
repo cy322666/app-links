@@ -98,6 +98,8 @@ class LinkScreen extends Screen
             '{country} - страна',
             '{cost} - стоимость',
             '{campaignid} - id кампании',
+            '{zone_id} - id региона',
+            '{zone_type} - тип региона',
             '{SUBID} - id клика',
         ];
 
@@ -114,10 +116,12 @@ class LinkScreen extends Screen
                             'country' => 'country',
                             'cost'    => 'cost',
                             'campaignid' => 'campaignid',
-                            'clickid'    => 'SUBID',
+                            'zone_type' => 'zone_type',
+                            'zone_id'    => 'zone_id',
+                            'clickid'   => 'SUBID',
                         ])
                         ->multiple()
-                        ->required(true)
+//                        ->required(true)
                         ->popover('Выберите параметры для формирования ссылки')
                         ->title('Параметры ссылки'),
 
@@ -129,13 +133,13 @@ class LinkScreen extends Screen
 
                     Input::make('name')
                         ->title('Название ссылки')
-                        ->required(true)
+//                        ->required(true)
                         ->popover('Введите название для ссылки'),
 
                     Relation::make('app')
                         ->fromModel(App::class, 'name')
-                        ->title('Приложение')
-                        ->required(true),
+                        ->title('Приложение'),
+//                        ->required(true),
 
                     Switcher::make('is_prelanding')
                         ->sendTrueOrFalse()
@@ -170,15 +174,23 @@ class LinkScreen extends Screen
 
                 ]),
             Layout::table('links', [
-                TD::make('name')->width(70),
+                TD::make('name')->width(100),
                 TD::make('created_at')->render(function ($link) {
+
                     return Carbon::parse($link->created_at)->format('Y-m-d H:i:s');
+
                 })->width(200)->defaultHidden(true),
 
-                TD::make('body')->align(TD::ALIGN_CENTER)->width(400),
-                TD::make('is_work')->align(TD::ALIGN_CENTER)->width(50)->defaultHidden(true),
-                TD::make('is_prelanding')->align(TD::ALIGN_CENTER)->width(50),
-                TD::make('prelanding_url')->align(TD::ALIGN_CENTER)->width(250),
+                TD::make('body', 'Ссылка')->align(TD::ALIGN_CENTER)->width(550),
+                TD::make('is_work', 'Включен')->align(TD::ALIGN_CENTER)->width(50)->defaultHidden(true),
+                TD::make('is_prelanding', 'Прелендинг')->align(TD::ALIGN_CENTER)->width(50),
+                TD::make('prelanding_url', 'Url преленда')->align(TD::ALIGN_CENTER)->width(250),
+
+                TD::make('delete', 'Действия')
+                        ->render(function ($link) {
+                            return \Orchid\Screen\Actions\Link::make('Удалить')
+                                ->route('admin.link.delete', $link);
+                })->width(30),
             ]),
         ];
     }
@@ -221,8 +233,8 @@ class LinkScreen extends Screen
         }, $arrayParams));
     }
 
-    public function showToast(Request $request): void
+    public function delete(Request $request): void
     {
-        Toast::warning($request->get('toast', 'Hello, world! This is a toast message.'));
+        Alert::info(json_encode($request->toArray(), true));
     }
 }
