@@ -57,7 +57,7 @@ class ActionTransitionDto
 
             $country = str_replace(['$'], '', $country);
 
-            return (string)$country;
+            return strtolower((string)$country);
         }
         return null;
     }
