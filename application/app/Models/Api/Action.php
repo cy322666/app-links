@@ -20,5 +20,7 @@ class Action extends Model
         'cost',
         'click_id',
         'date',
+        'zone_id',
+        'zone_type',
     ];
 }
