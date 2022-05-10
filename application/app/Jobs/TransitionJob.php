@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Dto\ActionTransitionDto;
 use App\Http\Requests\TransitionRequest;
 use App\Models\Api\Link;
 use Carbon\Carbon;
@@ -36,16 +37,18 @@ class TransitionJob implements ShouldQueue
      */
     public function handle()
     {
-        Log::info(__METHOD__, $this->requestData);
+        $dto = ActionTransitionDto::transform($this->requestData);
 
         $this->link->actions()->create([
             'type'    => 'transition',
             'app_id'  => $this->link->app->id,
-            'os'      => $this->requestData['os'] ?? null,
-            'country' => $this->requestData['country'] ?? null,
-            'cost'    => $this->requestData['cost'] ?? null,
-            'campaign_id' => $this->requestData['campaignid'] ?? null,
-            'click_id'  => $this->requestData['clickid'] ?? null,
+            'os'      => $dto->os,
+            'country' => $dto->country,
+            'cost'    => $dto->cost,
+            'campaign_id' => $dto->campaignId,
+            'click_id'  => $dto->clickId,
+            'zone_id'   => $dto->zoneId,
+            'zone_type' => $dto->zoneType,
 
             'date' => Carbon::now()->format('Y-m-d'),
             'transition_type' => $this->link->is_prelanding == true ? 'prelanding' : 'direct',

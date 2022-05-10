@@ -22,8 +22,10 @@ class WebController extends Controller
      * @param TransitionRequest $request
      * @return Application|RedirectResponse|Redirector
      */
-    public function transition(TransitionRequest $request)
+    public function transition(TransitionRequest $request): Redirector|Application|RedirectResponse
     {
+        Log::info(__METHOD__, $request->toArray());
+
         $link = Link::query()
             ->where('uuid', $request->uuid)
             ->firstOrFail();

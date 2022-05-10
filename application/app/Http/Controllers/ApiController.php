@@ -10,6 +10,7 @@ use App\Models\Api\App;
 use App\Models\Api\Link;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ApiController extends Controller
 {
@@ -21,6 +22,8 @@ class ApiController extends Controller
      */
     public function install(HookRequest $request)
     {
+        Log::info(__METHOD__, $request->toArray());
+
         $action = Action::query()
             ->where('click_id', $request->clickid)
             ->firstOrFail();
