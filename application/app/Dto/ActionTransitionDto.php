@@ -22,7 +22,7 @@ class ActionTransitionDto
         $dto->country    = self::validateCountry($params['country'] ?? null);
         $dto->campaignId = self::validateCampaignId($params['campaignid'] ?? null);
         $dto->clickId    = self::validateClickId($params['clickid'] ?? null);
-        $dto->zoneId     = self::validateZoneId($params['zoneId'] ?? null);
+        $dto->zoneId     = self::validateZoneId($params['zoneid'] ?? null);
         $dto->zoneType   = self::validateZoneType($params['zone_type'] ?? null);
 
         return $dto;
@@ -30,9 +30,13 @@ class ActionTransitionDto
 
     private static function validateOs($os) : ?string
     {
-        if ($os == 'ios' || $os == 'android') {
+        if ($os) {
+            $os = str_replace(['$'], '', $os);
 
-            return $os;
+            if ($os == 'ios' || $os == 'android') {
+
+                return $os;
+            }
         }
         return null;
     }
