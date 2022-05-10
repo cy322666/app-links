@@ -98,7 +98,7 @@ class LinkScreen extends Screen
             '{country} - страна',
             '{cost} - стоимость',
             '{campaignid} - id кампании',
-            '{zone_id} - id региона',
+            '{zoneid} - id региона',
             '{zone_type} - тип региона',
             '{SUBID} - id клика',
         ];
@@ -117,7 +117,7 @@ class LinkScreen extends Screen
                             'cost'    => 'cost',
                             'campaignid' => 'campaignid',
                             'zone_type' => 'zone_type',
-                            'zone_id'    => 'zone_id',
+                            'zoneid'    => 'zoneid',
                             'clickid'   => 'SUBID',
                         ])
                         ->multiple()
