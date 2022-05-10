@@ -3,19 +3,20 @@
 namespace App\Services\Reports;
 
 use App\Models\Api\Action;
-use App\Models\Api\Link;
 use Orchid\Screen\Repository;
 
-class ZoneIdStrategy
+class CampaignIdStrategy
 {
     private string $dateAt;
     private string $dateTo;
     private int $countDays;
+    private int $campaignId;
 
     public static array $columns = [
-        'zone_id' => 'Zone ID',
+        'type' => 'Тип',
         'costs' => 'Стоимость',
-        'costs_install' => 'Стоимость установки',
+        'avg_costs_install' => 'Средняя стоимость установки',
+        'avg_costs_transition' => 'Средняя стоимость клика',
         'count_transition' => 'Количество переходов',
         'count_install' => 'Количество установок',
         'cr' => 'CR',
@@ -25,11 +26,12 @@ class ZoneIdStrategy
         'count_ios' => 'Количество iOS',
     ];
 
-    public function __construct(array $dates)
+    public function __construct(array $dates, string $campaignId)
     {
         $this->dateAt = $dates['dateAt']->format('Y-m-d');
         $this->dateTo = $dates['dateTo']->format('Y-m-d');
-        $this->countDays = $dates['countDays'];
+        $this->countDays  = $dates['countDays'];
+        $this->campaignId = $campaignId;
     }
 
     public function build()
@@ -39,10 +41,13 @@ class ZoneIdStrategy
                 $this->dateAt,
                 $this->dateTo,
             ])
-            ->get()
-            ->groupBy('zone_id');
+            ->where('campaign_id', $this->campaignId);
 
-        foreach ($collections as $typeCollection => $collection) {
+        $collectionsZone = $collections
+            ->get()
+            ->groupBy('zone_type');
+
+        foreach ($collectionsZone as $typeCollection => $collection) {
 
             $countTransitionAll = $collection->count();
             $countInstallAll = $collection
@@ -54,16 +59,22 @@ class ZoneIdStrategy
             if ($countInstallAll > 0) {
 
                 $cr = round(($countInstallAll / $countTransitionAll) * 100, 1);
-                $costInstall = round($sum / $countInstallAll, 2);
+                $avgCostInstall = $sum / $countInstallAll;
             } else {
                 $cr = 0;
-                $costInstall = '-';
+                $avgCostInstall = '-';
             }
+            if ($countTransitionAll > 0) {
+
+                $avgCostTransition = $sum / $countTransitionAll;
+            } else
+                $avgCostTransition = '-';
 
             $dataReport[] = new Repository([
-                'zone_id'  => $typeCollection,
+                'type'  => $typeCollection,
                 'costs' => $sum,
-                'costs_install' => $costInstall,
+                'avg_costs_install' => $avgCostInstall,
+                'avg_costs_transition' => $avgCostTransition,
                 'count_transition' => $countTransitionAll,
                 'count_install'    => $countInstallAll,
                 'cr' => $cr.'%',

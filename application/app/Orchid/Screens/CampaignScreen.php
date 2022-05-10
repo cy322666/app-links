@@ -2,60 +2,30 @@
 
 namespace App\Orchid\Screens;
 
-use App\Models\Api\App;
-use App\Models\Api\Link;
 use App\Orchid\Layouts\ChartZoneCostClickLayout;
 use App\Orchid\Layouts\ChartZoneCostInstallLayout;
 use App\Orchid\Layouts\ChartZoneInstallLayout;
 use App\Orchid\Layouts\ChartZoneNameLayout;
-use App\Orchid\Layouts\Examples\ChartBarExample;
-use App\Orchid\Layouts\Examples\ChartLineExample;
-use App\Orchid\Layouts\Examples\ChartPercentageZoneId;
-use App\Orchid\Layouts\Examples\ChartPercentageZoneName;
+use App\Services\Reports\FilterRequest;
 use App\Services\Reports\ReportHelper;
+use App\Services\Reports\ZoneIdStrategy;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Orchid\Platform\Models\Role;
-use Orchid\Platform\Models\User;
 use Orchid\Screen\Action;
-use Orchid\Screen\Actions\Button;
-use Orchid\Screen\Fields\CheckBox;
-use Orchid\Screen\Fields\Cropper;
-use Orchid\Screen\Fields\DateRange;
-use Orchid\Screen\Fields\DateTimer;
-use Orchid\Screen\Fields\Group;
-use Orchid\Screen\Fields\Input;
-use Orchid\Screen\Fields\Label;
-use Orchid\Screen\Fields\Map;
-use Orchid\Screen\Fields\Matrix;
-use Orchid\Screen\Fields\Picture;
-use Orchid\Screen\Fields\RadioButtons;
-use Orchid\Screen\Fields\Range;
-use Orchid\Screen\Fields\Relation;
-use Orchid\Screen\Fields\Select;
-use Orchid\Screen\Fields\Switcher;
-use Orchid\Screen\Fields\TextArea;
-use Orchid\Screen\Fields\Upload;
-use Orchid\Screen\Fields\UTM;
-use Orchid\Screen\Layouts\Legend;
-use Orchid\Screen\Repository;
 use Orchid\Screen\Screen;
-use Orchid\Screen\Sight;
 use Orchid\Screen\TD;
-use Orchid\Support\Color;
-use Orchid\Support\Facades\Alert;
 use Orchid\Support\Facades\Layout;
-use Orchid\Support\Facades\Toast;
-use Ramsey\Uuid\Uuid;
 
 class CampaignScreen extends Screen
 {
-    /**
-     * Query data.
-     *
-     * @return array
-     */
+    private int $countDiffDays;
+
+    private array $reportColumns;
+    private array $reportColumnsZoneId;
+
+    private array $reportData;
+    private array $reportDataZoneId;
+
     public function query(\App\Models\Api\Action $action): iterable
     {
         $actionsAllRaw = \App\Models\Api\Action::query()
@@ -66,31 +36,57 @@ class CampaignScreen extends Screen
         $arraySumZoneClick = ReportHelper::sumByCollection(
             $actionsAll
                 ->groupBy('zone_id')
-                ->sortBy('sum'),
+                ->sortBy('sum')
+                ->slice(0,6),
         );
         $arraySumZoneInstall = ReportHelper::sumByCollection(
             $actionsAll
                 ->where('is_install', true)
                 ->groupBy('zone_type')
                 ->sortBy('sum')
+                ->slice(0,6)
         );
-        //стоимость всех кликов делить на количество
+        //TODO стоимость всех кликов делить на количество
         $arrayCostZoneClick = ReportHelper::costByCollection(
             $actionsAll
                 ->groupBy('zone_type')
-                ->sortBy('sum'),
+                ->sortBy('sum')
+                ->slice(0, 6)
         );
         $arrayCostZoneInstall = ReportHelper::costByCollection(
             $actionsAll
                 ->where('is_install', true)
                 ->groupBy('zone_type')
                 ->sortBy('sum')
+                ->slice(0, 6)
         );
+
+        $this->reportData = ReportHelper::reportBuild( 'campaign_id|'.$action->campaign_id, [
+            'dateAt'    => Carbon::parse('2021-01-01'),
+            'dateTo'    => Carbon::now(),
+            'countDays' => 1,
+        ]);
+
+        $this->reportDataZoneId = (new ZoneIdStrategy([
+            'dateAt'    => Carbon::parse('2021-01-01'),
+            'dateTo'    => Carbon::now(),
+            'countDays' => 1,
+        ]))->build();
+
+        $this->reportColumns = $this->reportData['columns'];
+        $this->reportColumnsZoneId = $this->reportDataZoneId['columns'];
+
+        unset($this->reportData['columns']);
+        unset($this->reportDataZoneId['columns']);
 
         return [
             'actions' => $actionsAllRaw
                 ->orderBy('updated_at', 'DESC')
                 ->paginate(30),
+
+            'zoneType' => $this->reportData,
+
+            'zoneId' => $this->reportDataZoneId,
 
             'zoneName' => [
                 [
@@ -169,6 +165,26 @@ class CampaignScreen extends Screen
                 ChartZoneCostClickLayout::class,
                 ChartZoneCostInstallLayout::class,
             ]),
+
+            Layout::table(
+                'zoneType',
+                ReportHelper::prepareColumns(
+                    $this->reportColumns,
+                    'campaign_id',
+                    $this->reportData,
+                    new FilterRequest(),
+                )
+            )->title('Отчет Zone type'),
+
+            Layout::table(
+                'zoneId',
+                ReportHelper::prepareColumns(
+                    $this->reportColumnsZoneId,
+                    'campaign_id',
+                    $this->reportDataZoneId,
+                    new FilterRequest(),
+                )
+            )->title('Отчет Zone ID'),
 
             Layout::table('actions', [
                 TD::make('transition_type', 'Тип перехода'),

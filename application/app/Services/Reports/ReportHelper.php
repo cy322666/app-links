@@ -60,12 +60,19 @@ class ReportHelper
 
     public static function reportBuild(?string $reportType, array $dates): array
     {
+        if (str_contains($reportType, '|')) {
+
+            $campaignId = explode('|', $reportType)[1];
+            $reportType = 'campaign_id';
+        }
+
         $strategy = match ($reportType) {
             'country' => new CountryStrategy($dates),
             'os'      => new OsStrategy($dates),
             'name'    => new NameStrategy($dates),
             'zone_type' => new ZoneTypeStrategy($dates),
             'zone_id' => new ZoneIdStrategy($dates),
+            'campaign_id' => new CampaignIdStrategy($dates, $campaignId),
             default   => new CampaignStrategy($dates),
         };
         return $strategy->build();

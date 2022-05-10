@@ -39,11 +39,6 @@ use Orchid\Support\Facades\Toast;
 
 class ReportScreen extends Screen
 {
-    /**
-     * Fish text for the table.
-     */
-    public const TEXT_EXAMPLE = '';
-
     private int $countDiffDays;
 
     private array $reportColumns;
