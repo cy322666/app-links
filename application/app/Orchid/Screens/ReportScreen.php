@@ -104,7 +104,7 @@ class ReportScreen extends Screen
 
         $arrayInstall = ReportHelper::prepareArray($arrayDates, $actionsInstallArray);
 
-        $arraySumCampaign = ReportHelper::sumByCollection($actionsFilterAll->groupBy('campaign_id')->sortBy('sum')->slice(0, 9));
+        $arraySumCampaign = ReportHelper::sumByCollection($actionsFilterAll->groupBy('campaign_id')->sortBy('sum')->slice(0, 6));
 
 //        $arraySumZone = ReportHelper::sumByCollection($actionsFilterAll->groupBy('zone_type')->sortBy('sum')->slice(0, 10));
 
