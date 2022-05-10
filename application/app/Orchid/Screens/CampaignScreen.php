@@ -88,7 +88,9 @@ class CampaignScreen extends Screen
         );
 
         return [
-            'actions' => $actionsAllRaw->paginate(30),
+            'actions' => $actionsAllRaw
+                ->orderBy('updated_at', 'DESC')
+                ->paginate(30),
 
             'zoneName' => [
                 [

@@ -67,7 +67,7 @@ class ReportScreen extends Screen
 
         $this->countDiffDays = $this->request->countDays;
 
-        $actionsAllPaginate = Action::orderBy('created_at')->paginate(30);
+        $actionsAllPaginate = Action::orderBy('updated_at', 'DESC')->paginate(30);
 
         $actionsAll = Action::all();
 
