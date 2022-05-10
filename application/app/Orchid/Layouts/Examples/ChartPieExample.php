@@ -16,7 +16,7 @@ class ChartPieExample extends Chart
     /**
      * @var int
      */
-    protected $height = 310;
+    protected $height = 350;
 
     protected $export = false;
 
