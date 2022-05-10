@@ -22,5 +22,7 @@ class Action extends Model
         'date',
         'zone_id',
         'zone_type',
+        'is_install',
+        'install_at',
     ];
 }
