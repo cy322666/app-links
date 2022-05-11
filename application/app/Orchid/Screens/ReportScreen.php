@@ -198,7 +198,7 @@ class ReportScreen extends Screen
 
                 'prelanding_filtered' => ['value' => number_format(
                     $actionsFilterAll
-                        ->where('transition_type', 'relanding')
+                        ->where('transition_type', 'prelanding')
                         ->count()
                 )],
 
