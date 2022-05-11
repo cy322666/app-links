@@ -62,7 +62,7 @@ class ReportScreen extends Screen
 
         $this->countDiffDays = $this->request->countDays;
 
-        $actionsAllPaginate = Action::orderBy('updated_at', 'DESC')->paginate(30);
+        $actionsAllPaginate = Action::orderBy('updated_at', 'DESC')->paginate(15);
 
         $actionsAll = Action::all();
 
@@ -100,10 +100,6 @@ class ReportScreen extends Screen
         $arrayInstall = ReportHelper::prepareArray($arrayDates, $actionsInstallArray);
 
         $arraySumCampaign = ReportHelper::sumByCollection($actionsFilterAll->groupBy('campaign_id')->sortBy('sum')->slice(0, 6));
-
-//        $arraySumZone = ReportHelper::sumByCollection($actionsFilterAll->groupBy('zone_type')->sortBy('sum')->slice(0, 10));
-
-//        $arraySumZoneId = ReportHelper::sumByCollection($actionsFilterAll->groupBy('zone_id')->sortBy('sum')->slice(0, 10));
 
         $this->reportData = ReportHelper::reportBuild($request->target_report ?? null, [
             'dateAt'    => $this->request->dateAt,
@@ -171,31 +167,6 @@ class ReportScreen extends Screen
                 ]
 
             ],
-//            'zone' => [
-//                [
-//                    "name" => "Регионы",
-//
-//                    "values" => array_values($arraySumZone),
-//                    "labels" => array_keys($arraySumZone),
-//                ]
-//            ],
-
-//            'zoneId' => [
-//                [
-//                    "name" => "Регионы",
-//
-//                    "values" => array_values($arraySumZoneId),
-//                    "labels" => array_keys($arraySumZoneId),
-//                ]
-//            ],
-
-            //по кампаниям, по названию, по системе и в разрезе дат
-
-            //по странам: country | costs | count_transition | count_install | ctr | prelanding | direct | android | ios
-
-            //по кампаниям: name | costs | count_transition | count_install | ctr | prelanding | direct | android | ios
-
-            //по системе: os | costs | count_transition | count_install | ctr | prelanding | direct
 
             'reports' => $this->reportData,
             'metrics' => [
@@ -207,13 +178,6 @@ class ReportScreen extends Screen
                    // 'diff' => 10.08
                 ],
 
-                'install_all'   => ['value' => number_format(
-                    $actionsAll
-                        ->where('is_install', true)
-                        ->count()),
-                  //  'diff' => -30.76
-                ],
-
                 'transition_today' => ['value' => number_format(
                     $actionsAll
                         ->where('type', 'transition')
@@ -222,12 +186,20 @@ class ReportScreen extends Screen
                     //'diff' => 0
                 ],
 
-                'transition_all' => ['value' => number_format(
-                    $actionsAll->count()
-                )],
-
                 'transition_filtered' => ['value' => number_format(
                     $actionsFilterAll->count()
+                )],
+
+                'direct_filtered' => ['value' => number_format(
+                    $actionsFilterAll
+                        ->where('transition_type', 'direct')
+                        ->count()
+                )],
+
+                'prelanding_filtered' => ['value' => number_format(
+                    $actionsFilterAll
+                        ->where('transition_type', 'relanding')
+                        ->count()
                 )],
 
                 'install_filtered' => ['value' => number_format(
@@ -236,14 +208,6 @@ class ReportScreen extends Screen
                         ->count()
                     )
                 ],
-
-                'spent_all' => ['value' => number_format(
-                    $actionsAll
-                        ->sum(function ($action) {
-
-                            return $action->cost;
-                    })
-                )],
 
                 'spent_filtered' => ['value' => number_format(
                     $actionsFilterAll
@@ -256,10 +220,7 @@ class ReportScreen extends Screen
                 'spent_today' => ['value' => number_format(
                     $actionsAll
                         ->where('date', Carbon::now()->format('Y-m-d'))
-                        ->sum(function ($action) {
-
-                            return $action->cost;
-                    })
+                        ->sum('cost')
                 )],
 
                 'prelanding_today' => ['value' => number_format(
@@ -268,21 +229,11 @@ class ReportScreen extends Screen
                         ->where('date', Carbon::now()->format('Y-m-d'))
                         ->count()
                 )],
-                'prelanding_all' => ['value' => number_format(
-                    $actionsAll
-                        ->where('transition_type', 'prelanding')
-                        ->count()
-                )],
 
                 'direct_today' => ['value' => number_format(
                     $actionsAll
                         ->where('transition_type', 'direct')
                         ->where('date', Carbon::now()->format('Y-m-d'))
-                        ->count()
-                )],
-                'direct_all' => ['value' => number_format(
-                    $actionsAll
-                        ->where('transition_type', 'direct')
                         ->count()
                 )],
             ],
@@ -321,36 +272,25 @@ class ReportScreen extends Screen
             Layout::columns([
                 Layout::metrics([
                     'Установок сегодня' => 'metrics.install_today',
-                    'Установок всего'   => 'metrics.install_all',
-                    'Переходов сегодня' => 'metrics.transition_today',
-                    'Переходов всего'   => 'metrics.transition_all',
-                ]),
-            ]),
-
-            Layout::columns([
-                Layout::metrics([
-                    'Прелендов сегодня' => 'metrics.prelanding_today',
-                    'Прелендов всего'   => 'metrics.prelanding_all',
                     'Прямых сегодня' => 'metrics.direct_today',
-                    'Прямых всего'   => 'metrics.direct_all',
+                    'Переходов сегодня' => 'metrics.transition_today',
+                    'Прелендов сегодня' => 'metrics.prelanding_today',
                 ]),
             ]),
 
             Layout::columns([
                 Layout::metrics([
                     'Установок за ('.$this->countDiffDays.') дней' => 'metrics.install_filtered',
-                    'Прямых переходов за ('.$this->countDiffDays.') дней' => 'metrics.install_all',
+                    'Прямых переходов за ('.$this->countDiffDays.') дней' => 'metrics.direct_filtered',
                     'Переходов за ('.$this->countDiffDays.') дней' => 'metrics.transition_filtered',
-                    'Прелендов за ('.$this->countDiffDays.') дней' => 'metrics.transition_all',
+                    'Прелендов за ('.$this->countDiffDays.') дней' => 'metrics.prelanding_filtered',
                 ]),
             ]),
 
             Layout::columns([
                 Layout::metrics([
-                    'Потрачено всего'   => 'metrics.spent_all',
                     'Потрачено сегодня' => 'metrics.spent_today',
                     'Потрачено за ('.$this->countDiffDays.') дней' => 'metrics.spent_filtered',
-                    'Потрачено в среднем' => 'metrics.spent_today',//TODO
                 ]),
             ]),
 
