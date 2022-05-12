@@ -40,7 +40,7 @@ class ReportHelper
         return $arrayInstall ?? [];
     }
 
-    public static function sumByCollection(Collection|LengthAwarePaginator $collections)
+    public static function sumByCollection(Collection|LengthAwarePaginator $collections): array
     {
         foreach ($collections as $campaignId => $collection) {
 
@@ -109,14 +109,37 @@ class ReportHelper
         }
         return $columns ?? [];
     }
-//                Legend::make('links', [
-//                    TD::make('id', 'ID')
-//                        ->width('150')
-//                        ->render(function (Repository $model) {
-//                            // Please use view('path')
-//                            return "<img src='https://picsum.photos/450/200?random={$model->get('id')}'
-//                              alt='sample'
-//                              class='mw-100 d-block img-fluid'>
-//                            <span class='small text-muted mt-1 mb-0'># {$model->get('id')}</span>";
-//                        }),
+
+    public static function getReportZone($actionsRawZoneType)
+    {
+        foreach ($actionsRawZoneType as $type => $collection) {
+
+            $sum = round($collection->sum('cost'), 2);
+
+            $countInstall    = $collection->where('is_install', true)->count();
+            $countTransition = $collection->count();
+
+            $cr = $countInstall > 0 ? round(($countInstall / $countTransition) * 100, 1) : 0;
+
+            $avgCostInstall = $countInstall > 0 ? round(($countInstall / $countTransition) * 100, 4) : 0;
+
+            $avgCostTransition = $countTransition > 0 ? round($sum / $countTransition, 4) : 0;
+
+            $repositories[] = new Repository([
+                'type'      => $type,
+                'costs_all' => $sum,
+                'costs_install'     => $collection->where('is_install', true)->sum('cost'),
+                'count_transition'  => $countTransition,
+                'count_install'     => $countInstall,
+                'cr'                => $cr.'%',
+                'avg_cost_install'  => $avgCostInstall,
+                'avg_cost_transition' => $avgCostTransition,
+                'count_prelanding'  => $collection->where('transition_type', 'prelanding')->count(),
+                'count_direct'      => $collection->where('transition_type', 'direct')->count(),
+                'count_android'     => $collection->where('os', 'android')->count(),
+                'count_ios'         => $collection->where('os', 'ios')->count(),
+            ]);
+        }
+        return $repositories ?? [];
+    }
 }
