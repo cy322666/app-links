@@ -2,6 +2,7 @@
 
 namespace App\Orchid\Screens;
 
+use App\Models\Api\Action;
 use App\Orchid\Layouts\ChartZoneCostClickLayout;
 use App\Orchid\Layouts\ChartZoneCostInstallLayout;
 use App\Orchid\Layouts\ChartZoneInstallLayout;
@@ -10,8 +11,10 @@ use App\Services\Reports\FilterRequest;
 use App\Services\Reports\ReportHelper;
 use App\Services\Reports\ZoneIdStrategy;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
-use Orchid\Screen\Action;
+use Illuminate\Support\Facades\DB;
+use Orchid\Screen\Repository;
 use Orchid\Screen\Screen;
 use Orchid\Screen\TD;
 use Orchid\Support\Facades\Layout;
@@ -26,67 +29,97 @@ class CampaignScreen extends Screen
     private array $reportData;
     private array $reportDataZoneId;
 
-    public function query(\App\Models\Api\Action $action): iterable
+    public function query(Action $action, Request $request): iterable
     {
-        $actionsAllRaw = \App\Models\Api\Action::query()
-            ->where('campaign_id', $action->campaign_id);
+        $actionsAllRaw = Action::query()
+            ->where('campaign_id', $action->campaign_id)
+            ->get();
 
-        $actionsAll = $actionsAllRaw->get();
+//        $costAll = $actionsAllRaw->sum('cost');
+
+//        $costCount = $actionsAllRaw->count();
+
+        $actionZoneIdRaw = $actionsAllRaw->groupBy('zone_id');
+
+        $actionZoneTypeRaw = $actionsAllRaw->groupBy('zone_type');
 
         $arraySumZoneClick = ReportHelper::sumByCollection(
-            $actionsAll
-                ->groupBy('zone_id')
+            $actionZoneIdRaw
                 ->sortBy('sum')
                 ->slice(0,6),
         );
         $arraySumZoneInstall = ReportHelper::sumByCollection(
-            $actionsAll
+            $actionZoneIdRaw
                 ->where('is_install', true)
-                ->groupBy('zone_type')
                 ->sortBy('sum')
                 ->slice(0,6)
         );
-        //TODO стоимость всех кликов делить на количество
-        $arrayCostZoneClick = ReportHelper::costByCollection(
-            $actionsAll
-                ->groupBy('zone_type')
-                ->sortBy('sum')
-                ->slice(0, 6)
-        );
-        $arrayCostZoneInstall = ReportHelper::costByCollection(
-            $actionsAll
-                ->where('is_install', true)
-                ->groupBy('zone_type')
-                ->sortBy('sum')
-                ->slice(0, 6)
-        );
 
-        $this->reportData = ReportHelper::reportBuild( 'campaign_id|'.$action->campaign_id, [
-            'dateAt'    => Carbon::parse('2021-01-01'),
-            'dateTo'    => Carbon::now(),
-            'countDays' => 1,
-        ]);
+//        dd(Action::query()
+//            ->where('campaign_id', $action->campaign_id)
+//            ->get()
+//            ->groupBy('zone_type'));
 
-        $this->reportDataZoneId = (new ZoneIdStrategy([
-            'dateAt'    => Carbon::parse('2021-01-01'),
-            'dateTo'    => Carbon::now(),
-            'countDays' => 1,
-        ]))->build();
+        $actionsRaw = DB::table('actions')
+            ->select([
+                'type',
+                'os',
+                'country',
+                'cost',
+                'date',
+                'transition_type',
+                'is_install',
+                'install_at',
+                'zone_id',
+                'zone_type',
+            ])
+            ->where('campaign_id', $action->campaign_id)
+            ->get();
 
-        $this->reportColumns = $this->reportData['columns'];
-        $this->reportColumnsZoneId = $this->reportDataZoneId['columns'];
+        $actionsRawZoneType = $actionsRaw->groupBy('zone_type');
 
-        unset($this->reportData['columns']);
-        unset($this->reportDataZoneId['columns']);
+        foreach ($actionsRawZoneType as $type => $collection) {
+
+            $sum = round($collection->sum('cost'), 2);
+
+            $countInstall    = $collection->where('is_install', true)->count();
+            $countTransition = $collection->count();
+
+            $cr = $countInstall > 0 ? round(($countInstall / $countTransition) * 100, 1) : 0;
+
+            $avgCostInstall = $countInstall > 0 ? round(($countInstall / $countTransition) * 100, 4) : 0;
+
+            $avgCostTransition = $countTransition > 0 ? round($sum / $countTransition, 4) : 0;
+
+            $repositories[] = new Repository([
+                'type'      => $type,
+                'costs_all' => $sum,
+                'costs_install'     => $collection->where('is_install', true)->sum('cost'),
+                'count_transition'  => $countTransition,
+                'count_install'     => $countInstall,
+                'cr'                => $cr.'%',
+                'avg_cost_install'  => $avgCostInstall,
+                'avg_cost_transition' => $avgCostTransition,
+                'count_prelanding'  => $collection->where('transition_type', 'prelanding')->count(),
+                'count_direct'      => $collection->where('transition_type', 'direct')->count(),
+                'count_android'     => $collection->where('os', 'android')->count(),
+                'count_ios'         => $collection->where('os', 'ios')->count(),
+            ]);
+        }
 
         return [
-            'actions' => $actionsAllRaw
-                ->orderBy('updated_at', 'DESC')
-                ->paginate(30),
+            'actions' => \App\Models\Api\Action::query()
+                ->where('campaign_id', $action->campaign_id)
+                ->filters()
+                ->defaultSort('updated_at', 'desc')
+                ->paginate(15),
 
-            'zoneType' => $this->reportData,
+            'zoneType' => $repositories,
 
-            'zoneId' => $this->reportDataZoneId,
+//            'zoneId' => Action::query()
+//                ->where('campaign_id', $action->campaign_id)
+//                ->get()
+//                ->groupBy('zone_id'),
 
             'zoneName' => [
                 [
@@ -98,18 +131,6 @@ class CampaignScreen extends Screen
                 [
                     "values" => array_values($arraySumZoneInstall),
                     "labels" => array_keys($arraySumZoneInstall),
-                ]
-            ],
-            'zoneCostClick' => [
-                [
-                    "values" => array_values($arrayCostZoneClick),
-                    "labels" => array_keys($arrayCostZoneClick),
-                ],
-            ],
-            'zoneCostInstall' => [
-                [
-                    "values" => array_values($arrayCostZoneInstall),
-                    "labels" => array_keys($arrayCostZoneInstall),
                 ]
             ],
         ];
@@ -157,34 +178,37 @@ class CampaignScreen extends Screen
         return [
 
             Layout::columns([
-                ChartZoneNameLayout::class,
-                ChartZoneInstallLayout::class,
-            ]),
-
-            Layout::columns([
                 ChartZoneCostClickLayout::class,
                 ChartZoneCostInstallLayout::class,
             ]),
 
-            Layout::table(
-                'zoneType',
-                ReportHelper::prepareColumns(
-                    $this->reportColumns,
-                    'campaign_id',
-                    $this->reportData,
-                    new FilterRequest(),
-                )
-            )->title('Отчет Zone type'),
+            Layout::table('zoneType', [
+                TD::make('type', 'Тип'),
+                TD::make('costs_all','Общ ст.'),
+                TD::make('costs_install','Общ. ст. установок'),
+                TD::make('count_transition','Кол-во переходов'),
+                TD::make('count_install','Кол-во установок'),
+                TD::make('avg_cost_transition','Ср. ст. клика'),
+                TD::make('avg_cost_install','Ср. ст. установки'),
+                TD::make('cr'),
+                TD::make('count_prelanding','Кол-во прелендов'),
+                TD::make('count_direct','Кол-во прямых'),
+                TD::make('count_android','Кол-во Android'),
+                TD::make('count_ios','Кол-во iOS'),
+            ])->title('Отчет Zone type'),
 
-            Layout::table(
-                'zoneId',
-                ReportHelper::prepareColumns(
-                    $this->reportColumnsZoneId,
-                    'campaign_id',
-                    $this->reportDataZoneId,
-                    new FilterRequest(),
-                )
-            )->title('Отчет Zone ID'),
+//            Layout::table('zoneId', [
+//                TD::make('name', 'Тип'),
+//                TD::make('costs','Стоимость'),
+//                TD::make('costs_install','Стоимость установки'),
+//                TD::make('count_transition','Количество переходов'),
+//                TD::make('count_install','Количество установок'),
+//                TD::make('cr'),
+//                TD::make('count_prelanding','Количество прелендов'),
+//                TD::make('count_direct','Количество прямых'),
+//                TD::make('count_android','Количество Android'),
+//                TD::make('count_ios','Количество iOS'),
+//            ])->title('Отчет Zone ID'),
 
             Layout::table('actions', [
                 TD::make('transition_type', 'Тип перехода'),
