@@ -112,7 +112,10 @@ class ReportScreen extends Screen
         unset($this->reportData['columns']);
 
         return [
-            'actions' => $actionsAllPaginate,
+            'actions' => Action::query()
+                ->orderBy('updated_at')
+                ->limit(20)
+                ->get(),
 
             'chartsActionsType'  => [
                 [
