@@ -113,7 +113,7 @@ class ReportScreen extends Screen
 
         return [
             'actions' => Action::query()
-                ->orderBy('updated_at')
+                ->orderBy('updated_at', 'desc')
                 ->limit(20)
                 ->get(),
 
