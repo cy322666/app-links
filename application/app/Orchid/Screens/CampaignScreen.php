@@ -144,7 +144,7 @@ class CampaignScreen extends Screen
             Layout::table('zoneType', [
                 TD::make('type', 'Тип'),
                 TD::make('costs_all','Общ ст.')->sort(),
-                TD::make('costs_install','Общ. ст. установок')->sort(),
+//                TD::make('costs_install','Общ. ст. установок')->sort(),
                 TD::make('count_transition','Кол-во переходов')->sort(),
                 TD::make('count_install','Кол-во установок')->sort(),
                 TD::make('avg_cost_transition','Ср. ст. клика')->sort(),
@@ -161,7 +161,7 @@ class CampaignScreen extends Screen
             Layout::table('zoneId', [
                 TD::make('type', 'Тип'),
                 TD::make('costs_all','Общ ст.')->sort(),
-                TD::make('costs_install','Общ. ст. установок')->sort(),
+//                TD::make('costs_install','Общ. ст. установок')->sort(),
                 TD::make('count_transition','Кол-во переходов')->sort(),
                 TD::make('count_install','Кол-во установок')->sort(),
                 TD::make('avg_cost_transition','Ср. ст. клика')->sort(),

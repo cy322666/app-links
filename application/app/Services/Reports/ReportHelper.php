@@ -43,14 +43,14 @@ class ReportHelper
 
             $cr = $countInstall > 0 ? round(($countInstall / $countTransition) * 100, 1) : 0;
 
-            $avgCostInstall = $countInstall > 0 ? round(($countInstall / $countTransition) * 100, 4) : 0;
+            $avgCostInstall = $countInstall > 0 ? round($sum / $countInstall, 4) : 0;
 
             $avgCostTransition = $countTransition > 0 ? round($sum / $countTransition, 4) : 0;
 
             $repositories[] = [
                 'type'      => $type,
                 'costs_all' => $sum,
-                'costs_install'     => $collection->where('is_install', true)->sum('cost'),
+//                'costs_install'     => $collection->where('is_install', true)->sum('cost'),
                 'count_transition'  => $countTransition,
                 'count_install'     => $countInstall,
                 'cr'                => $cr,

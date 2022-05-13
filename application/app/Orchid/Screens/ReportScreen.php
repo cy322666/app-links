@@ -91,7 +91,7 @@ class ReportScreen extends Screen
                 'zone_id',
                 'zone_type',
             ])
-            ->where('updated_at', Carbon::now()->format('Y-m-d'))
+            ->where('date', Carbon::now()->format('Y-m-d'))
             ->get();
 
         $arrayDates = ReportHelper::getArrayDates($this->countDays);
@@ -333,7 +333,7 @@ class ReportScreen extends Screen
                     return "<b><a href=".route('platform.campaign', $actionId).">{$action['type']}</a></b>";
                 }),
                 TD::make('costs_all','Общ ст.')->sort(),
-                TD::make('costs_install','Общ. ст. установок')->sort(),
+//                TD::make('costs_install','Общ. ст. установок')->sort(),
                 TD::make('count_transition','Кол-во переходов')->sort(),
                 TD::make('count_install','Кол-во установок')->sort(),
                 TD::make('avg_cost_transition','Ср. ст. клика')->sort(),
