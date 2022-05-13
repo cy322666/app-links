@@ -16,6 +16,7 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Redirector;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Orchid\Platform\Models\User;
 use Orchid\Screen\Actions\Button;
@@ -39,16 +40,8 @@ use Orchid\Support\Facades\Toast;
 
 class ReportScreen extends Screen
 {
-    private int $countDiffDays;
-
-    private array $reportColumns;
-
-    private array $reportData;
-
-    public FilterRequest $request;
-
-    private string $targetReport = 'campaign';
-
+    private int $countDays;
+    private string $targetReport;
     /**
      * Query data.
      *
@@ -56,73 +49,87 @@ class ReportScreen extends Screen
      */
     public function query(Request $request): iterable
     {
-        $this->targetReport = $request->target_report ?? $this->targetReport;
+        $dateAt = $request->input('date_at') ? Carbon::parse($request->input('date_at')) : Carbon::now()->subDays(6);
+        $dateTo = $request->input('date_to') ? Carbon::parse($request->input('date_to')) : Carbon::now()->addDay();
 
-        $this->request = (new FilterRequest())->getDatesByRequest($request);
+        $this->targetReport = $request->targetReport ?? 'campaign_id';
 
-        $this->countDiffDays = $this->request->countDays;
+        $this->countDays = $dateAt->diffInDays($dateTo);
 
-        $actionsAll = Action::all();
-
-        $actionsFilterAll = Action::query()
+        $actionsFilterAll = DB::table('actions')
+            ->select([
+                'created_at',
+                'type',
+                'os',
+                'country',
+                'cost',
+                'date',
+                'transition_type',
+                'is_install',
+                'campaign_id',
+                'install_at',
+                'zone_id',
+                'zone_type',
+            ])
             ->whereBetween('date', [
-                $this->request->dateAt->format('Y-m-d'),
-                $this->request->dateTo->format('Y-m-d'),
+                $dateAt->format('Y-m-d'),
+                $dateTo->format('Y-m-d'),
             ])
             ->get();
 
-        $arrayDates = ReportHelper::getArrayDates($this->countDiffDays);
+        $actionsTodayAll = DB::table('actions')
+            ->select([
+                'created_at',
+                'type',
+                'os',
+                'country',
+                'cost',
+                'date',
+                'transition_type',
+                'is_install',
+                'install_at',
+                'zone_id',
+                'zone_type',
+            ])
+            ->where('updated_at', Carbon::now()->format('Y-m-d'))
+            ->get();
 
-        $actionsTransitionArray = ReportHelper::getArrayByCollection($actionsFilterAll, 'type', 'transition')
+        $arrayDates = ReportHelper::getArrayDates($this->countDays);
+
+        $actionsTransitionArray = $actionsFilterAll
             ->groupBy('date')
             ->toArray();
 
-        $actionsAndroidArray = ReportHelper::getArrayByCollection($actionsFilterAll, 'os', 'android')
+        $actionsInstallArray = $actionsFilterAll
+            ->where('is_install', true)
             ->groupBy('date')
             ->toArray();
 
-        $actionsOsArray = ReportHelper::getArrayByCollection($actionsFilterAll, 'os','ios')
+        $actionsAndroidArray = $actionsFilterAll
+            ->where('os', 'android')
             ->groupBy('date')
             ->toArray();
 
-        $actionsInstallArray = ReportHelper::getArrayByCollection($actionsFilterAll, 'is_install', true)
+        $actionsIOsArray = $actionsFilterAll
+            ->where('os', 'ios')
             ->groupBy('date')
             ->toArray();
-
-        $arrayAndroid = ReportHelper::prepareArray($arrayDates, $actionsAndroidArray);
-
-        $arrayTransition = ReportHelper::prepareArray($arrayDates, $actionsTransitionArray);
-
-        $arrayOs = ReportHelper::prepareArray($arrayDates, $actionsOsArray);
-
-        $arrayInstall = ReportHelper::prepareArray($arrayDates, $actionsInstallArray);
-
-        $arraySumCampaign = ReportHelper::sumByCollection($actionsFilterAll->groupBy('campaign_id')->sortBy('sum')->slice(0, 6));
-
-        $this->reportData = ReportHelper::reportBuild($request->target_report ?? null, [
-            'dateAt'    => $this->request->dateAt,
-            'dateTo'    => $this->request->dateTo,
-            'countDays' => $this->request->countDays,
-        ]);
-
-        $this->reportColumns = $this->reportData['columns'];
-
-        unset($this->reportData['columns']);
 
         return [
+
             'actions' => Action::query()
                 ->orderBy('updated_at', 'desc')
                 ->limit(10)
                 ->get(),
 
-            'chartsActionsType'  => [
+            'chartsActionsType' => [
                 [
                     'name'   => 'Переходы',
                     'values' => array_values(array_map(function ($arrayDate) {
 
                         return count($arrayDate);
 
-                    }, $arrayTransition)),
+                    }, ReportHelper::prepareArray($arrayDates, $actionsTransitionArray))),
 
                     'labels' => $arrayDates,
                 ],
@@ -132,19 +139,19 @@ class ReportScreen extends Screen
 
                         return count($arrayDate);
 
-                    }, $arrayInstall)),
+                    }, ReportHelper::prepareArray($arrayDates, $actionsInstallArray))),
 
                     'labels' => $arrayDates,
                 ],
             ],
-            'chartsOS'  => [
+            'chartsOS' => [
                 [
                     'name'   => 'Android',
                     'values' => array_values(array_map(function ($arrayDate) {
 
                         return count($arrayDate);
 
-                    }, $arrayAndroid)),
+                    }, ReportHelper::prepareArray($arrayDates, $actionsAndroidArray))),
 
                     'labels' => $arrayDates,
                 ],
@@ -154,37 +161,25 @@ class ReportScreen extends Screen
 
                         return count($arrayDate);
 
-                    }, $arrayOs)),
+                    }, ReportHelper::prepareArray($arrayDates, $actionsIOsArray))),
 
                     'labels' => $arrayDates,
                 ],
             ],
-            'chartsTransitionType' => [
-                [
-                    "name" => "Кампании",
 
-                    "values" => array_values($arraySumCampaign),
-                    "labels" => array_keys($arraySumCampaign),
-                ]
+            'reports' => ReportHelper::getReport($actionsFilterAll->groupBy($this->targetReport), $request->sort ?? 'count_install'),
 
-            ],
-
-            'reports' => $this->reportData,
             'metrics' => [
                 'install_today' => ['value' => number_format(
-                    $actionsAll
+                    $actionsTodayAll
                         ->where('is_install', true)
-                        ->where('install_at', Carbon::now()->format('Y-m-d'))
                         ->count()),
-                   // 'diff' => 10.08
                 ],
 
                 'transition_today' => ['value' => number_format(
-                    $actionsAll
+                    $actionsTodayAll
                         ->where('type', 'transition')
-                        ->where('date', Carbon::now()->format('Y-m-d'))
                         ->count()),
-                    //'diff' => 0
                 ],
 
                 'transition_filtered' => ['value' => number_format(
@@ -210,31 +205,24 @@ class ReportScreen extends Screen
                     )
                 ],
 
-                'spent_filtered' => ['value' => number_format(
-                    $actionsFilterAll
-                        ->sum(function ($action) {
-
-                            return $action->cost;
-                        })
-                )],
+                'spent_filtered' => [
+                    'value' => number_format($actionsFilterAll->sum('cost'))
+                ],
 
                 'spent_today' => ['value' => number_format(
-                    $actionsAll
-                        ->where('date', Carbon::now()->format('Y-m-d'))
+                    $actionsTodayAll
                         ->sum('cost')
                 )],
 
                 'prelanding_today' => ['value' => number_format(
                     $actionsFilterAll
                         ->where('transition_type', 'prelanding')
-                        ->where('date', Carbon::now()->format('Y-m-d'))
                         ->count()
                 )],
 
                 'direct_today' => ['value' => number_format(
-                    $actionsAll
+                    $actionsTodayAll
                         ->where('transition_type', 'direct')
-                        ->where('date', Carbon::now()->format('Y-m-d'))
                         ->count()
                 )],
             ],
@@ -273,7 +261,7 @@ class ReportScreen extends Screen
             Layout::columns([
                 Layout::metrics([
                     'Установок сегодня' => 'metrics.install_today',
-                    'Прямых сегодня' => 'metrics.direct_today',
+                    'Прямых сегодня'    => 'metrics.direct_today',
                     'Переходов сегодня' => 'metrics.transition_today',
                     'Прелендов сегодня' => 'metrics.prelanding_today',
                 ]),
@@ -281,17 +269,17 @@ class ReportScreen extends Screen
 
             Layout::columns([
                 Layout::metrics([
-                    'Установок за ('.$this->countDiffDays.') дней' => 'metrics.install_filtered',
-                    'Прямых переходов за ('.$this->countDiffDays.') дней' => 'metrics.direct_filtered',
-                    'Переходов за ('.$this->countDiffDays.') дней' => 'metrics.transition_filtered',
-                    'Прелендов за ('.$this->countDiffDays.') дней' => 'metrics.prelanding_filtered',
+                    'Установок за ('.$this->countDays.') дней' => 'metrics.install_filtered',
+                    'Прямых переходов за ('.$this->countDays.') дней' => 'metrics.direct_filtered',
+                    'Переходов за ('.$this->countDays.') дней' => 'metrics.transition_filtered',
+                    'Прелендов за ('.$this->countDays.') дней' => 'metrics.prelanding_filtered',
                 ]),
             ]),
 
             Layout::columns([
                 Layout::metrics([
                     'Потрачено сегодня' => 'metrics.spent_today',
-                    'Потрачено за ('.$this->countDiffDays.') дней' => 'metrics.spent_filtered',
+                    'Потрачено за ('.$this->countDays.') дней' => 'metrics.spent_filtered',
                 ]),
             ]),
 
@@ -302,7 +290,7 @@ class ReportScreen extends Screen
 
             Layout::columns([
 
-                ChartPieExample::class,
+                ChartBarExample::class,
 
                 Layout::rows([
                     Group::make([
@@ -337,15 +325,25 @@ class ReportScreen extends Screen
                 ]),
             ]),
 
-            Layout::table(
-                'reports',
-                ReportHelper::prepareColumns(
-                    $this->reportColumns,
-                    $this->targetReport,
-                    $this->reportData,
-                    $this->request,
-                )
-            )->title('Отчеты по параметрам'),
+            Layout::table('reports', [
+                TD::make('type', 'Название')->render(function ($action) {
+
+                    $actionId = Action::query()->where('campaign_id', $action['type'])->first()->id;
+
+                    return "<b><a href=".route('platform.campaign', $actionId).">{$action['type']}</a></b>";
+                }),
+                TD::make('costs_all','Общ ст.')->sort(),
+                TD::make('costs_install','Общ. ст. установок')->sort(),
+                TD::make('count_transition','Кол-во переходов')->sort(),
+                TD::make('count_install','Кол-во установок')->sort(),
+                TD::make('avg_cost_transition','Ср. ст. клика')->sort(),
+                TD::make('avg_cost_install','Ср. ст. установки')->sort(),
+                TD::make('cr')->sort(),
+                TD::make('count_prelanding','Кол-во прелендов')->sort(),
+                TD::make('count_direct','Кол-во прямых')->sort(),
+                TD::make('count_android','Кол-во Android')->sort(),
+                TD::make('count_ios','Кол-во iOS')->sort(),
+            ])->title('Отчеты по параметрам'),
 
             Layout::table('actions', [
                 TD::make('transition_type', 'Тип перехода'),

@@ -4,11 +4,11 @@ namespace App\Services\Reports;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Redirector;
+use Illuminate\Support\Facades\Route;
 
-class FilterRequest extends \Illuminate\Http\Request
+class FilterRequest
 {
-    public $request;
+    public Request $request;
     public $dateAt;
     public $dateTo;
     public $countDays;
@@ -19,6 +19,14 @@ class FilterRequest extends \Illuminate\Http\Request
         $queryReport = 'target_report='.$this->request->targetReport ?? 'campaign';
 
         return 'admin/reports?'.$queryDates.'&'.$queryReport;
+    }
+
+    public function filterCampaign(): string
+    {
+        $queryDates  = 'date_at='.$this->dateAt.'&date_to='.$this->dateTo;
+        $queryReport = 'target_report='.$this->request->targetReport ?? 'campaign';
+
+        return url()->current().'?'.$queryDates.'&'.$queryReport;
     }
 
     public function getDatesByRequest(Request $request): static

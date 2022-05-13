@@ -22,14 +22,6 @@ class ReportHelper
         return $arrayDates ?? [];
     }
 
-    public static function getArrayByCollection(Collection|LengthAwarePaginator $collection, string $key, string $param): Collection
-    {
-        return $collection->filter(function ($model) use ($param, $key) {
-
-            return $model->$key == $param;
-        });
-    }
-
     public static function prepareArray(array $arrayDates, array $actionsInstallArray): array
     {
         foreach (array_flip($arrayDates) as $date => $key) {
@@ -40,79 +32,9 @@ class ReportHelper
         return $arrayInstall ?? [];
     }
 
-    public static function sumByCollection(Collection|LengthAwarePaginator $collections): array
+    public static function getReport($collections, string $sortType): array
     {
-        foreach ($collections as $campaignId => $collection) {
-
-            $arraySum[$campaignId] = $collection->sum('cost');
-        }
-        return $arraySum ?? [];
-    }
-
-    public static function costByCollection(Collection|LengthAwarePaginator $collections): array
-    {
-        foreach ($collections as $campaignId => $collection) {
-
-            $arraySum[$campaignId] = $collection->sum('cost') / $collection->count();
-        }
-        return $arraySum ?? [];
-    }
-
-    public static function reportBuild(?string $reportType, array $dates): array
-    {
-        if (str_contains($reportType, '|')) {
-
-            $campaignId = explode('|', $reportType)[1];
-            $reportType = 'campaign_id';
-        }
-
-        $strategy = match ($reportType) {
-            'country' => new CountryStrategy($dates),
-            'os'      => new OsStrategy($dates),
-            'name'    => new NameStrategy($dates),
-            'zone_type' => new ZoneTypeStrategy($dates),
-            'zone_id' => new ZoneIdStrategy($dates),
-            'campaign_id' => new CampaignIdStrategy($dates, $campaignId),
-            default   => new CampaignStrategy($dates),
-        };
-        return $strategy->build();
-    }
-
-    public static function prepareColumns(
-        array $columnsRaw,
-        string $targetReport,
-        array $reportData,
-        FilterRequest $request,
-    ): array
-    {
-        foreach ($columnsRaw as $columnCode => $columnTitle) {
-
-            if ($targetReport != 'campaign') {
-
-                $columns[] = TD::make($columnCode, $columnTitle);
-
-            } elseif ($columnCode == 'id') {
-
-                $columns[] = TD::make($columnCode, $columnTitle)->defaultHidden(true);
-            } else {
-                if ($columnCode == 'name') {
-
-                    $columns[] = TD::make($columnCode, $columnTitle)
-                        ->render(function (Repository $reportData) use ($request, $columnCode) {
-
-                            return "<b><a href=".env('APP_URL').'/admin/reports/campaign/'.$reportData->get('id').">{$reportData->get('name')}</a></b>";
-                        });
-                } else {
-                    $columns[] = TD::make($columnCode, $columnTitle);
-                }
-            }
-        }
-        return $columns ?? [];
-    }
-
-    public static function getReportZone($actionsRawZoneType)
-    {
-        foreach ($actionsRawZoneType as $type => $collection) {
+        foreach ($collections as $type => $collection) {
 
             $sum = round($collection->sum('cost'), 2);
 
@@ -125,21 +47,49 @@ class ReportHelper
 
             $avgCostTransition = $countTransition > 0 ? round($sum / $countTransition, 4) : 0;
 
-            $repositories[] = new Repository([
+            $repositories[] = [
                 'type'      => $type,
                 'costs_all' => $sum,
                 'costs_install'     => $collection->where('is_install', true)->sum('cost'),
                 'count_transition'  => $countTransition,
                 'count_install'     => $countInstall,
-                'cr'                => $cr.'%',
+                'cr'                => $cr,
                 'avg_cost_install'  => $avgCostInstall,
                 'avg_cost_transition' => $avgCostTransition,
                 'count_prelanding'  => $collection->where('transition_type', 'prelanding')->count(),
                 'count_direct'      => $collection->where('transition_type', 'direct')->count(),
                 'count_android'     => $collection->where('os', 'android')->count(),
                 'count_ios'         => $collection->where('os', 'ios')->count(),
-            ]);
+            ];
         }
-        return $repositories ?? [];
+
+        if (!empty($repositories)) {
+
+            //сортировка
+            if (count($repositories) > 1) {
+
+                static::sortByKey($repositories, str_replace('-', '', $sortType), strripos($sortType, '-'));
+            }
+
+            //оборачивание в Repository
+            $repositoriesCollection = array_map(function ($repository) {
+
+                return new Repository($repository);
+
+            }, $repositories);
+        }
+
+        return $repositoriesCollection ?? [new Repository([])];
+    }
+
+    private static function sortByKey(array &$repositories, string $key, bool|int $sortType)
+    {
+        usort($repositories, function($arr1, $arr2) use ($key, $sortType) {
+
+            $param1 = floatval($arr1[$key]);
+            $param2 = floatval($arr2[$key]);
+
+            return $sortType === false ? $param1 < $param2 : $param1 > $param2;
+        });
     }
 }
