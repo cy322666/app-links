@@ -338,7 +338,9 @@ class ReportScreen extends Screen
                 TD::make('count_install','Кол-во установок')->sort(),
                 TD::make('avg_cost_transition','Ср. ст. клика')->sort(),
                 TD::make('avg_cost_install','Ср. ст. установки')->sort(),
-                TD::make('cr')->sort(),
+                TD::make('cr')->render(function ($action) {
+                    return $action['cr'].'%';
+                })->sort(),
                 TD::make('count_prelanding','Кол-во прелендов')->sort(),
                 TD::make('count_direct','Кол-во прямых')->sort(),
                 TD::make('count_android','Кол-во Android')->sort(),
