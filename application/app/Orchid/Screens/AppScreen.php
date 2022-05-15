@@ -123,6 +123,12 @@ class AppScreen extends Screen
                 TD::make('uuid')->align(TD::ALIGN_CENTER),//->width(170),
                 TD::make('url')->align(TD::ALIGN_CENTER),//->width(400),
                 TD::make('is_work')->align(TD::ALIGN_CENTER),
+
+                TD::make('delete', 'Действия')
+                    ->render(function ($app) {
+                        return \Orchid\Screen\Actions\Link::make('Удалить')
+                            ->route('admin.app.delete', $app);
+                    })->width(30),
             ]),
         ];
     }

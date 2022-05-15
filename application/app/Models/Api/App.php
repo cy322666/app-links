@@ -21,4 +21,9 @@ class App extends Model
     {
         return $this->hasMany(Action::class);
     }
+
+    public function links(): HasMany
+    {
+        return $this->hasMany(Action::class);
+    }
 }

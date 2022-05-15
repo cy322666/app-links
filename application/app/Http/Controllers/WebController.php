@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\TransitionRequest;
 use App\Jobs\TransitionJob;
+use App\Models\Api\App;
 use App\Models\Api\Link;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
@@ -43,12 +44,18 @@ class WebController extends Controller
 
     public function deleteLink(Link $link): Redirector|Application|RedirectResponse
     {
-        DB::table('actions')
-            ->where('link_id', $link->id)
-            ->delete();
-
+        $link->actions->delete();
         $link->delete();
 
         return redirect(route('platform.links'));
+    }
+
+    public function deleteApp(App $app): Redirector|Application|RedirectResponse
+    {
+        $app->actions()->delete();
+        $app->links()->delete();
+        $app->delete();
+
+        return redirect(route('platform.apps'));
     }
 }

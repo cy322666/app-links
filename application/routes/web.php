@@ -26,4 +26,6 @@ Route::group(['prefix' => 'app'], function () {
 Route::group(['prefix' => 'admin'], function () {
 
     Route::get('link/delete/{link}', [WebController::class, 'deleteLink'])->name('admin.link.delete');
+
+    Route::get('app/delete/{app}', [WebController::class, 'deleteApp'])->name('admin.app.delete');
 });

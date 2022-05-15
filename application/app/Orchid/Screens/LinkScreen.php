@@ -125,12 +125,6 @@ class LinkScreen extends Screen
                         ->popover('Выберите параметры для формирования ссылки')
                         ->title('Параметры ссылки'),
 
-//                    Input::make('template')
-//                        ->title('Шаблон ссылки')
-//                        ->type('url')
-//                        ->help(env('APP_URL').'/hook?clickid=${SUBID}&country=${country}')
-//                        ->popover('Введите шаблон для рекламодателя'),
-
                     Input::make('name')
                         ->title('Название ссылки')
 //                        ->required(true)
@@ -160,19 +154,7 @@ class LinkScreen extends Screen
                         return $helpText;
                     }),
                 ]),
-
-//                Legend::make('links', [
-//                    TD::make('id', 'ID')
-//                        ->width('150')
-//                        ->render(function (Repository $model) {
-//                            // Please use view('path')
-//                            return "<img src='https://picsum.photos/450/200?random={$model->get('id')}'
-//                              alt='sample'
-//                              class='mw-100 d-block img-fluid'>
-//                            <span class='small text-muted mt-1 mb-0'># {$model->get('id')}</span>";
-//                        }),
-
-                ]),
+            ]),
             Layout::table('links', [
                 TD::make('name')->width(100),
                 TD::make('created_at')->render(function ($link) {
@@ -231,10 +213,5 @@ class LinkScreen extends Screen
                 return 'clickid=${SUBID}';
             }
         }, $arrayParams));
-    }
-
-    public function delete(Request $request): void
-    {
-        Alert::info(json_encode($request->toArray(), true));
     }
 }
